@@ -53,22 +53,40 @@ const applyStyle = (element, current, history = null) => {
     }
   }
 }
-const data = { init: false, target: null, name: "none", names: [], subs: [], lines: [] }
-const time = { current: 0, duration: 0, sync: 0 }
+
+const data = { init: false, target: null, name: "none", names: [null, null], subs: [null, null] }
+const time = { current: 0, duration: 0, sync: [0, 0] }
+
 const overlay = {
-  version: "1.2",
-  outer: { element: document.createElement("div"), style: { all: "initial", width: 0, height: 0, left: 0, top: 0, justifyContent: "center", alignItems: "end", paddingLeft: 65, paddingRight: 65, paddingTop: 86, paddingBottom: 86, pointerEvents: "none", position: "fixed", display: "flex", boxSizing: "border-box" } },
-  inner: { element: document.createElement("div"), style: { all: "initial", fontSize: 40, color: "#ffffff", fontWeight: "normal", textAlign: "center", textShadow: "0px 0px 10px #000", backgroundColor: "rgba(0, 0, 0, 0.0)", pointerEvents: "none", borderRadius: 10, padding: "8px 12px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif" } }
+  version: "2.6", 
+  outer: { element: document.createElement("div"), style: { all: "initial", width: 0, height: 0, left: 0, top: 0, justifyContent: "center", alignItems: "end", paddingLeft: 65, paddingRight: 65, paddingTop: 86, paddingBottom: 86, pointerEvents: "none", position: "fixed", display: "flex", flexDirection: "row", boxSizing: "border-box" } },
+  stack: { element: document.createElement("div"), style: { display: "flex", flexDirection: "column", gap: "10px", alignItems: "center", pointerEvents: "none" } },
+  inner: [
+    { element: document.createElement("div"), style: { all: "initial", fontSize: 40, color: "#ffffff", fontWeight: "normal", textAlign: "center", textShadow: "0px 0px 10px #000", backgroundColor: "rgba(0, 0, 0, 0.0)", pointerEvents: "none", borderRadius: 10, padding: "8px 12px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif" } },
+    { element: document.createElement("div"), style: { all: "initial", fontSize: 40, color: "#ffffff", fontWeight: "normal", textAlign: "center", textShadow: "0px 0px 10px #000", backgroundColor: "rgba(0, 0, 0, 0.0)", pointerEvents: "none", borderRadius: 10, padding: "8px 12px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif" } }
+  ]
 }
+
 const outer = overlay.outer.element
-const inner = overlay.inner.element
 const outerStyle = overlay.outer.style
-const innerStyle = overlay.inner.style
+const stack = overlay.stack.element
+const stackStyle = overlay.stack.style
+
 outer.id = "-ext-sub-stream-overlay-outer"
-inner.id = "-ext-sub-stream-overlay-inner"
+stack.id = "-ext-sub-stream-overlay-stack"
+
 applyStyle(outer, outerStyle)
-applyStyle(inner, innerStyle)
-outer.appendChild(inner)
+applyStyle(stack, stackStyle)
+
+outer.appendChild(stack)
+stack.appendChild(overlay.inner[1].element) // Index 1
+stack.appendChild(overlay.inner[0].element) // Index 0
+
+overlay.inner.forEach((inn, i) => {
+    inn.element.id = `-ext-sub-stream-overlay-inner-${i}`;
+    applyStyle(inn.element, inn.style);
+});
+
 const init = () => { data.init = true; update() }
 const update = () => {
   if (data.init) { requestAnimationFrame(update) }
@@ -76,29 +94,32 @@ const update = () => {
   if (video) {
     time.current = video.currentTime
     time.duration = video.duration
-    const current = time.current - time.sync
-    let textBottom = ""
-    let textTop = ""
-    if (data.subs[0]) {
-      const lineBottom = data.subs[0].find(line => line.from <= current && line.to >= current)
-      if (lineBottom) textBottom = lineBottom.text
+    
+    for (let i = 0; i < 2; i++) {
+        if (data.subs[i]) {
+            const current = time.current - time.sync[i];
+            const line = data.subs[i].find(l => l.from <= current && l.to >= current);
+            const text = line ? line.text : "";
+            if (overlay.inner[i].element.innerHTML !== text) {
+                overlay.inner[i].element.innerHTML = text;
+            }
+            overlay.inner[i].element.style.display = text !== "" ? "block" : "none";
+        } else {
+            overlay.inner[i].element.style.display = "none";
+        }
     }
-    if (data.subs[1]) {
-      const lineTop = data.subs[1].find(line => line.from <= current && line.to >= current)
-      if (lineTop) textTop = lineTop.text
-    }
-    let text = ""
-    if (textTop && textBottom) { text = `<div>${textTop}</div><div style="margin-top: 8px;">${textBottom}</div>` }
-    else if (textTop) { text = `<div>${textTop}</div>` }
-    else if (textBottom) { text = `<div>${textBottom}</div>` }
-    if (inner.innerHTML !== text) { inner.innerHTML = text }
-    inner.style.display = text !== "" ? "block" : "none"
+
     const rect = video.getBoundingClientRect()
     applyStyle(outer, { width: rect.width, height: rect.height, left: rect.left, top: rect.top }, outerStyle)
+    
+    const alignMap = { "start": "flex-start", "center": "center", "end": "flex-end" };
+    const horizontalAlign = alignMap[outerStyle.justifyContent] || "center";
+    if (stack.style.alignItems !== horizontalAlign) {
+        stack.style.alignItems = horizontalAlign;
+    }
+
     const parent = video.parentElement
     if (parent && !parent.querySelector("#" + outer.id)) { parent.appendChild(outer) }
-  } else {
-    inner.style.display = "none"
   }
 }
 const onElement = () => {
@@ -120,15 +141,18 @@ const onUpload = () => {
       if (!file) return resolve()
       const reader = new FileReader()
       reader.addEventListener("load", () => {
-        if (data.subs.length >= 2) {
+        if (!data.subs[0]) {
+          data.names[0] = file.name
+          data.subs[0] = parseLines(reader.result)
+        } else if (!data.subs[1]) {
           data.names[1] = file.name
           data.subs[1] = parseLines(reader.result)
         } else {
-          data.names.push(file.name)
-          data.subs.push(parseLines(reader.result))
+          data.names[1] = file.name
+          data.subs[1] = parseLines(reader.result)
         }
-        data.name = data.names.join(" & ") || "none"
-        data.lines = data.subs[0] || []
+        
+        data.name = data.names.filter(Boolean).join(" & ") || "none"
         resolve()
       })
       reader.readAsText(file)
@@ -143,7 +167,7 @@ document.addEventListener("fullscreenchange", () => {
       if (!subLines) return;
       const track = document.createElement("track")
       track.kind = "subtitles"
-      track.label = `DualSubStream ${index === 0 ? 'Bottom' : 'Top'}`
+      track.label = `DualSubStream ${index === 0 ? 'Sub 1' : 'Sub 2'}`
       track.default = true
       track.className = "-ext-sub-stream-track"
       track.src = createVTT(subLines)
@@ -172,32 +196,46 @@ chrome.runtime.onMessage.addListener(async (message, _s, callback) => {
   }
   if (message.id !== id) { return }
   if (action === "update") {
+    const subIdx = payload.subIndex ?? 0;
     if ("name" in payload) { data.name = payload.name }
-    if ("lines" in payload) { data.lines = payload.lines }
-    if ("sync" in payload) { time.sync = payload.sync }
+    if ("sync" in payload) { time.sync[subIdx] = payload.sync }
     if ("outer" in payload) { applyStyle(outer, payload.outer, outerStyle) }
-    if ("inner" in payload) { applyStyle(inner, payload.inner, innerStyle) }
+    
+    if ("inner" in payload && Array.isArray(payload.inner)) {
+        applyStyle(overlay.inner[0].element, payload.inner[0], overlay.inner[0].style)
+        applyStyle(overlay.inner[1].element, payload.inner[1], overlay.inner[1].style)
+    } 
+    else if ("inner" in payload) { 
+        applyStyle(overlay.inner[subIdx].element, payload.inner, overlay.inner[subIdx].style) 
+    }
   } else if (action === "upload") {
     await onUpload()
   } else if (action === "remove") {
     const idx = payload.index
-    data.names.splice(idx, 1)
-    data.subs.splice(idx, 1)
-    data.name = data.names.join(" & ") || "none"
-    data.lines = data.subs[0] || []
-    if (data.names.length === 0) {
+    
+    data.names[idx] = null;
+    data.subs[idx] = null;
+    
+    time.sync[idx] = 0;
+    overlay.inner[idx].element.style.display = "none";
+    overlay.inner[idx].element.innerHTML = "";
+    
+    data.name = data.names.filter(Boolean).join(" & ") || "none"
+    if (data.names.filter(Boolean).length === 0) {
       data.init = false
-      inner.style.display = "none"
     }
   }
   
   if (action === "stop") {
     data.init = false
-    inner.style.display = "none"
+    overlay.inner.forEach(inn => {
+      inn.element.style.display = "none";
+      inn.element.innerHTML = "";
+    });
     data.name = "none"
-    data.names = []
-    data.subs = []
-    data.lines = []
+    data.names = [null, null]
+    data.subs = [null, null]
+    time.sync = [0, 0]
     sendMessage("data", { data, time, overlay })
   } else if (action === "time") {
     sendMessage("time", { time })

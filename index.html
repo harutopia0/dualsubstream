@@ -18,6 +18,12 @@
         <div class="tab timing">Timing</div>
         <div class="tab settings">Settings</div>
     </div>
+
+    <div class="sub-selector">
+        <label class="radio-label sub1"><input type="radio" name="activeSub" value="0" checked> Sub 1</label>
+        <label class="radio-label sub2"><input type="radio" name="activeSub" value="1"> Sub 2</label>
+    </div>
+
     <div class="sections">
         <div class="section upload" data-name="none">
             <div class="upload-preview">
@@ -38,7 +44,7 @@
         <div class="section settings">
             <fieldset id="settings" data-position="end-center" data-weight="normal">
                 <div class="settings-section">
-                    <div class="settings-section-title">Position</div>
+                    <div class="settings-section-title">Position (Global)</div>
                     <div class="settings-section-content position">
                         <div class="position-box">
                             <div class="position-row">
@@ -88,7 +94,7 @@
                     <label class="text-shadow"><input id="text-shadow" type="range" min="0" max="30"></label>
                 </div>
                 <div class="settings-section">
-                    <div class="settings-section-title">background Opacity</div>
+                    <div class="settings-section-title">Background Opacity</div>
                     <label class="background-opacity"><input id="background-opacity" type="range" min="0" max="100"></label>
                 </div>
             </fieldset>
