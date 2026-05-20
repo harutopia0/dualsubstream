@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preload" href="./assets/fonts/Ubuntu/Ubuntu-Regular.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="./assets/fonts/Ubuntu/Ubuntu-Medium.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="./assets/fonts/Ubuntu/Ubuntu-Bold.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="stylesheet" href="./assets/fonts/fonts.css">
+    <link rel="stylesheet" href="./index.css">
+    <script src="./index.js" type="module" defer></script>
+    <title>DualSubStream</title>
+</head>
+<body id="app" data-tab="upload">
+    <div class="error">DualSubStream is not available on this page.</div>
+    <div class="tabs">
+        <div class="tab upload">Upload</div>
+        <div class="tab timing">Timing</div>
+        <div class="tab settings">Settings</div>
+    </div>
+    <div class="sections">
+        <div class="section upload" data-name="none">
+            <div class="upload-preview">
+                <div class="upload-preview-time"></div>
+                <div class="upload-preview-list"></div>
+            </div>
+            <div class="upload-tray">
+                <div class="upload-tray-text"></div>
+            </div>
+        </div>
+        <div class="section timing">
+            <div class="timing-sync">
+                <div class="timing-sync-label"><b>Synchronizing Amount</b> (+ / - Seconds)</div>
+                <input class="timing-sync-input" type="text" id="sync">
+            </div>
+            <div class="timing-lines"></div>
+        </div>
+        <div class="section settings">
+            <fieldset id="settings" data-position="end-center" data-weight="normal">
+                <div class="settings-section">
+                    <div class="settings-section-title">Position</div>
+                    <div class="settings-section-content position">
+                        <div class="position-box">
+                            <div class="position-row">
+                                <input type="button" id="position" value="start-start">
+                                <input type="button" id="position" value="start-center">
+                                <input type="button" id="position" value="start-end">
+                            </div>
+                            <div class="position-row">
+                                <input type="button" id="position" value="center-start">
+                                <input type="button" id="position" value="center-center">
+                                <input type="button" id="position" value="center-end">
+                            </div>
+                            <div class="position-row">
+                                <input type="button" id="position" value="end-start">
+                                <input type="button" id="position" value="end-center">
+                                <input type="button" id="position" value="end-end">
+                            </div>
+                        </div>
+                        <div class="spacing-box">
+                            <label class="spacing-x">Vertical Spacing<input id="spacing-x" type="range" min="0" max="300"></label>
+                            <label class="spacing-y">Horizontal Spacing<input id="spacing-y" type="range" min="0" max="300"></label>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-sections-row">
+                    <div class="settings-section font-weight">
+                        <div class="settings-section-title">Font Weight</div>
+                        <div class="font-weight-box">
+                            <input type="button" id="font-weight" value="Lighter">
+                            <input type="button" id="font-weight" value="Normal">
+                            <input type="button" id="font-weight" value="Bolder">
+                        </div>
+                    </div>
+                    <div class="settings-section text-color">
+                        <div class="settings-section-title">Text Color</div>
+                        <div class="text-color-box">
+                            <input type="color" id="text-color" value="#ffffff">
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-section-title">Font Size</div>
+                    <label class="font-size"><input id="font-size" type="range" min="10" max="80"></label>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-section-title">Text Shadow</div>
+                    <label class="text-shadow"><input id="text-shadow" type="range" min="0" max="30"></label>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-section-title">background Opacity</div>
+                    <label class="background-opacity"><input id="background-opacity" type="range" min="0" max="100"></label>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+    <div class="footer">
+        <div class="footer-title">Modified by harutopia0</div>
+        <div class="footer-original">Original SubStream by Deshan Nawanjana</div>
+    </div>
+</body>
+</html>
