@@ -176,10 +176,20 @@ const update = () => {
             const current = time.current - time.sync[i];
             const line = data.subs[i].find(l => l.from <= current && l.to >= current);
             const text = line ? line.text : "";
-            if (overlay.inner[i].element.innerHTML !== text) {
-                overlay.inner[i].element.innerHTML = text;
+            
+            if (text !== "") {
+                if (overlay.inner[i].element.innerHTML !== text) {
+                    overlay.inner[i].element.innerHTML = text;
+                }
+                overlay.inner[i].element.style.visibility = "visible";
+            } else {
+                if (overlay.inner[i].element.innerHTML !== "&nbsp;") {
+                    overlay.inner[i].element.innerHTML = "&nbsp;";
+                }
+                overlay.inner[i].element.style.visibility = "hidden";
             }
-            overlay.inner[i].element.style.display = text !== "" ? "block" : "none";
+            
+            overlay.inner[i].element.style.display = "block";
         } else {
             overlay.inner[i].element.style.display = "none";
         }
