@@ -20,16 +20,58 @@ function parseLines(text, ext) {
   const output = []
   
   if (ext === "ass" || ext === "ssa") {
+    let fmt = { start: 1, end: 2, text: 9 }
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim()
-      if (line.startsWith("Dialogue:")) {
-        const parts = line.split(",")
-        if (parts.length >= 10) {
-          const start = parseTime(parts[1])
-          const end = parseTime(parts[2])
-          let textStr = parts.slice(9).join(",")
-          textStr = textStr.replace(/\{[^}]+\}/g, "").replace(/\\N/g, "<br>").replace(/\\n/g, "<br>")
-          output.push({ from: start, to: end, text: textStr })
+      
+      if (line.startsWith("Format:")) {
+        const cols = line.substring(7).split(",").map(c => c.trim())
+        fmt.start = cols.indexOf("Start")
+        fmt.end = cols.indexOf("End")
+        fmt.text = cols.indexOf("Text")
+      } 
+      else if (line.startsWith("Dialogue:")) {
+        const dataStr = line.substring(9).trim()
+        const parts = dataStr.split(",")
+        
+        if (fmt.start > -1 && fmt.text > -1 && parts.length > fmt.text) {
+          const start = parseTime(parts[fmt.start])
+          const end = parseTime(parts[fmt.end])
+          const rawText = parts.slice(fmt.text).join(",")
+          
+          let isDrawing = false;
+          let cleanText = "";
+          let inTag = false;
+          let currentTag = "";
+          
+          for (let j = 0; j < rawText.length; j++) {
+            const char = rawText[j];
+            if (char === '{') {
+              inTag = true;
+              currentTag = "";
+            } else if (char === '}') {
+              inTag = false;
+              if (/\\p[1-9]/.test(currentTag)) {
+                isDrawing = true;
+              } else if (/\\p0/.test(currentTag)) {
+                isDrawing = false;
+              }
+            } else {
+              if (inTag) {
+                currentTag += char;
+              } else {
+                if (!isDrawing) {
+                  cleanText += char;
+                }
+              }
+            }
+          }
+          
+          cleanText = cleanText.replace(/\\[Nn]/g, "<br>").replace(/\\h/g, " ").trim()
+          
+          if (cleanText) {
+            output.push({ from: start, to: end, text: cleanText })
+          }
         }
       }
     }
@@ -69,11 +111,11 @@ function createVTT(lines) {
   const text = "WEBVTT\n\n" + lines.map(line => {
     const from = toVTTTime(line.from)
     const to = toVTTTime(line.to)
-    const text = line.text.replace(/<br\s*\/?>/gi, '\n')
-    return `${from} --> ${to}\n${text}`
+    const textStr = line.text.replace(/<br\s*\/?>/gi, '\n')
+    return `${from} --> ${to}\n${textStr}`
   }).join("\n\n")
-  const blob = new Blob([text], { type: "text/vtt" })
-  return URL.createObjectURL(blob)
+  
+  return "data:text/vtt;charset=utf-8," + encodeURIComponent(text)
 }
 
 const applyStyle = (element, current, history = null) => {
@@ -214,7 +256,6 @@ document.addEventListener("fullscreenchange", () => {
     const tracks = document.querySelectorAll(".-ext-sub-stream-track")
     for (let i = 0; i < tracks.length; i++) {
       const track = tracks[i]
-      URL.revokeObjectURL(track.src)
       track.remove()
     }
   }
