@@ -1,30 +1,62 @@
 ﻿const id = typeof crypto === "object" && typeof crypto.randomUUID === "function" ? `${performance.now()}-${crypto.randomUUID()}-${Math.random()}` : `${performance.now()}-${Math.random()}-${Date.now() * Math.random()}`
 function sendMessage(type, data) { chrome.runtime.sendMessage({ id, type, data }).catch(() => { }) }
-function toSeconds(time) {
-  const [hours, minutes, seconds] = time.split(":")
-  const [secs, mill] = seconds.split(",")
-  return parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(secs, 10) + parseInt(mill, 10) / 1000
+
+function parseTime(timeStr) {
+  if (!timeStr) return 0;
+  const parts = timeStr.trim().split(':');
+  const secParts = parts.pop().split(/[,.]/);
+  const secs = parseInt(secParts[0] || "0", 10);
+  let ms = 0;
+  if (secParts[1]) {
+    ms = parseInt(secParts[1].padEnd(3, '0').substring(0, 3), 10);
+  }
+  const mins = parseInt(parts.pop() || "0", 10);
+  const hrs = parseInt(parts.pop() || "0", 10);
+  return hrs * 3600 + mins * 60 + secs + ms / 1000;
 }
-function parseLines(text) {
+
+function parseLines(text, ext) {
   const lines = text.split(/\r?\n/)
   const output = []
-  let current = { from: 0, to: 0, text: "" }
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim()
-    if (/^\d+$/.test(line)) {
-      current = { from: 0, to: 0, text: "" }
-    } else if (line.includes("-->")) {
-      const [start, end] = line.split("-->").map(time => time.trim())
-      current.from = toSeconds(start)
-      current.to = toSeconds(end)
-    } else if (line) {
-      current.text = (current.text ? current.text + "<br>" : "") + line
-    } else if (current.text) {
-      output.push(current)
+  
+  if (ext === "ass" || ext === "ssa") {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim()
+      if (line.startsWith("Dialogue:")) {
+        const parts = line.split(",")
+        if (parts.length >= 10) {
+          const start = parseTime(parts[1])
+          const end = parseTime(parts[2])
+          let textStr = parts.slice(9).join(",")
+          textStr = textStr.replace(/\{[^}]+\}/g, "").replace(/\\N/g, "<br>").replace(/\\n/g, "<br>")
+          output.push({ from: start, to: end, text: textStr })
+        }
+      }
     }
+  } else {
+    let current = { from: 0, to: 0, text: "" }
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim()
+      if (line === "WEBVTT" || line.startsWith("NOTE") || line.startsWith("STYLE") || line.startsWith("REGION")) continue;
+      
+      if (/^\d+$/.test(line) && !line.includes("-->")) {
+        current = { from: 0, to: 0, text: "" }
+      } else if (line.includes("-->")) {
+        const [start, end] = line.split("-->").map(time => time.trim().split(" ")[0])
+        current.from = parseTime(start)
+        current.to = parseTime(end)
+      } else if (line) {
+        current.text = (current.text ? current.text + "<br>" : "") + line
+      } else if (current.text) {
+        output.push(current)
+        current = { from: 0, to: 0, text: "" }
+      }
+    }
+    if (current.text) output.push(current)
   }
   return output
 }
+
 function toVTTTime(seconds) {
   const hrs = Math.floor(seconds / 3600)
   const mins = Math.floor((seconds % 3600) / 60)
@@ -32,6 +64,7 @@ function toVTTTime(seconds) {
   const ms = Math.round((seconds % 1) * 1000)
   return [hrs.toString().padStart(2, '0'), mins.toString().padStart(2, '0'), secs.toString().padStart(2, '0')].join(':') + '.' + ms.toString().padStart(3, '0')
 }
+
 function createVTT(lines) {
   const text = "WEBVTT\n\n" + lines.map(line => {
     const from = toVTTTime(line.from)
@@ -42,6 +75,7 @@ function createVTT(lines) {
   const blob = new Blob([text], { type: "text/vtt" })
   return URL.createObjectURL(blob)
 }
+
 const applyStyle = (element, current, history = null) => {
   const keys = Object.keys(current)
   for (let i = 0; i < keys.length; i++) {
@@ -79,8 +113,8 @@ applyStyle(outer, outerStyle)
 applyStyle(stack, stackStyle)
 
 outer.appendChild(stack)
-stack.appendChild(overlay.inner[1].element) // Index 1
-stack.appendChild(overlay.inner[0].element) // Index 0
+stack.appendChild(overlay.inner[1].element) 
+stack.appendChild(overlay.inner[0].element) 
 
 overlay.inner.forEach((inn, i) => {
     inn.element.id = `-ext-sub-stream-overlay-inner-${i}`;
@@ -130,26 +164,28 @@ const onElement = () => {
   if (data.target && data.target.duration === maximum) { return }
   data.target = elements.find(item => item.duration === maximum)
 }
+
 const onUpload = () => {
   return new Promise(resolve => {
     const input = document.createElement("input")
     input.type = "file"
-    input.accept = ".srt"
+    input.accept = ".srt,.vtt,.ass,.ssa"
     input.multiple = false
     input.addEventListener("input", () => {
       const file = input.files[0]
       if (!file) return resolve()
       const reader = new FileReader()
       reader.addEventListener("load", () => {
+        const ext = file.name.split('.').pop().toLowerCase()
         if (!data.subs[0]) {
           data.names[0] = file.name
-          data.subs[0] = parseLines(reader.result)
+          data.subs[0] = parseLines(reader.result, ext)
         } else if (!data.subs[1]) {
           data.names[1] = file.name
-          data.subs[1] = parseLines(reader.result)
+          data.subs[1] = parseLines(reader.result, ext)
         } else {
           data.names[1] = file.name
-          data.subs[1] = parseLines(reader.result)
+          data.subs[1] = parseLines(reader.result, ext)
         }
         
         data.name = data.names.filter(Boolean).join(" & ") || "none"
@@ -160,6 +196,7 @@ const onUpload = () => {
     input.click()
   })
 }
+
 document.addEventListener("fullscreenchange", () => {
   const element = document.fullscreenElement
   if (element && element === data.target) {
@@ -182,6 +219,7 @@ document.addEventListener("fullscreenchange", () => {
     }
   }
 })
+
 chrome.runtime.onMessage.addListener(async (message, _s, callback) => {
   const action = message.action
   const payload = message.payload
