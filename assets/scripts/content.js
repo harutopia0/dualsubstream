@@ -135,7 +135,7 @@ const time = { current: 0, duration: 0, sync: [0, 0] }
 
 const overlay = {
   version: "2.6", 
-  outer: { element: document.createElement("div"), style: { all: "initial", width: 0, height: 0, left: 0, top: 0, justifyContent: "center", alignItems: "end", paddingLeft: 65, paddingRight: 65, paddingTop: 86, paddingBottom: 86, pointerEvents: "none", position: "fixed", display: "flex", flexDirection: "row", boxSizing: "border-box" } },
+  outer: { element: document.createElement("div"), style: { all: "initial", width: 0, height: 0, left: 0, top: 0, justifyContent: "center", alignItems: "end", paddingLeft: 65, paddingRight: 65, paddingTop: 86, paddingBottom: 86, pointerEvents: "none", position: "fixed", display: "flex", flexDirection: "row", boxSizing: "border-box", zIndex: 2147483647 } },
   stack: { element: document.createElement("div"), style: { display: "flex", flexDirection: "column", gap: "10px", alignItems: "center", pointerEvents: "none" } },
   inner: [
     { element: document.createElement("div"), style: { all: "initial", fontSize: 40, color: "#ffffff", fontWeight: "normal", textAlign: "center", textShadow: "0px 0px 10px #000", backgroundColor: "rgba(0, 0, 0, 0.0)", pointerEvents: "none", borderRadius: 10, padding: "8px 12px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif" } },
@@ -167,7 +167,7 @@ const init = () => { data.init = true; update() }
 const update = () => {
   if (data.init) { requestAnimationFrame(update) }
   const video = data.target
-  if (video) {
+  if (video && document.body.contains(video)) {
     time.current = video.currentTime
     time.duration = video.duration
     
@@ -196,7 +196,9 @@ const update = () => {
     }
 
     const rect = video.getBoundingClientRect()
-    applyStyle(outer, { width: rect.width, height: rect.height, left: rect.left, top: rect.top }, outerStyle)
+    if (rect.width > 0 && rect.height > 0) {
+        applyStyle(outer, { width: rect.width, height: rect.height, left: rect.left, top: rect.top }, outerStyle)
+    }
     
     const alignMap = { "start": "flex-start", "center": "center", "end": "flex-end" };
     const horizontalAlign = alignMap[outerStyle.justifyContent] || "center";
@@ -213,8 +215,8 @@ const onElement = () => {
   const durations = elements.map(item => item.duration).filter(item => !isNaN(item)).filter(item => item > 10)
   if (durations.length === 0) { return }
   const maximum = Math.max(...durations)
-  if (data.target && data.target.duration === maximum) { return }
-  data.target = elements.find(item => item.duration === maximum)
+  if (data.target && document.body.contains(data.target) && data.target.duration === maximum) { return }
+  data.target = elements.find(item => item.duration === maximum && document.body.contains(item))
 }
 
 const onUpload = () => {
