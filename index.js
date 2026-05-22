@@ -51,6 +51,12 @@ function updateSettingsUI(overlay) {
     qs("#background-opacity").value = bgOpacity;
 }
 
+function syncRadioButtons(value) {
+    qa(`input[name="activeSubTiming"], input[name="activeSubSettings"]`).forEach(radio => {
+        radio.checked = (parseInt(radio.value) === value);
+    });
+}
+
 chrome.runtime.onMessage.addListener(message => {
   if (!message) { return }
   const type = message.type
@@ -92,7 +98,6 @@ chrome.runtime.onMessage.addListener(message => {
     const isLoaded = validSubs.length > 0;
     qs(".section.upload").setAttribute("data-name", isLoaded ? "loaded" : "none");
 
-    // Khóa nút Upload khi đủ 2 Subtitles
     const uploadTray = qs(".upload-tray");
     if (validSubs.length >= 2) {
         uploadTray.classList.add("locked");
@@ -147,12 +152,16 @@ Array.from(qa(".tab")).forEach(tab => {
   tab.addEventListener("click", () => {
     states.tab = tab.classList[1]
     document.body.setAttribute("data-tab", states.tab)
+    if (states.tab === "timing" && lastData && lastData.data) {
+        onTiming(lastData.data.subs[states.activeSub] || []);
+    }
   })
 })
 
-Array.from(qa('input[name="activeSub"]')).forEach(radio => {
+qa(`input[name="activeSubTiming"], input[name="activeSubSettings"]`).forEach(radio => {
     radio.addEventListener("change", (e) => {
         states.activeSub = parseInt(e.target.value);
+        syncRadioButtons(states.activeSub);
         if (lastData && lastData.data) {
             onTiming(lastData.data.subs[states.activeSub] || []);
             updateSettingsUI(lastData.overlay);

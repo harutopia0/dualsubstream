@@ -19,11 +19,6 @@
         <div class="tab settings">Settings</div>
     </div>
 
-    <div class="sub-selector">
-        <label class="radio-label sub1"><input type="radio" name="activeSub" value="0" checked> Sub 1</label>
-        <label class="radio-label sub2"><input type="radio" name="activeSub" value="1"> Sub 2</label>
-    </div>
-
     <div class="sections">
         <div class="section upload" data-name="none">
             <div class="upload-preview">
@@ -35,6 +30,10 @@
             </div>
         </div>
         <div class="section timing">
+            <div class="sub-selector">
+                <label class="radio-label sub1"><input type="radio" name="activeSubTiming" value="0" checked> Sub 1</label>
+                <label class="radio-label sub2"><input type="radio" name="activeSubTiming" value="1"> Sub 2</label>
+            </div>
             <div class="timing-sync">
                 <div class="timing-sync-label"><b>Synchronizing Amount</b> (+ / - Seconds)</div>
                 <input class="timing-sync-input" type="text" id="sync">
@@ -69,6 +68,14 @@
                         </div>
                     </div>
                 </div>
+
+                <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 5px 0;" />
+
+                <div class="sub-selector">
+                    <label class="radio-label sub1"><input type="radio" name="activeSubSettings" value="0" checked> Sub 1</label>
+                    <label class="radio-label sub2"><input type="radio" name="activeSubSettings" value="1"> Sub 2</label>
+                </div>
+
                 <div class="settings-sections-row">
                     <div class="settings-section font-weight">
                         <div class="settings-section-title">Font Weight</div>
