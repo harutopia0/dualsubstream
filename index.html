@@ -34,9 +34,17 @@
                 <label class="radio-label sub1"><input type="radio" name="activeSubTiming" value="0" checked> Sub 1</label>
                 <label class="radio-label sub2"><input type="radio" name="activeSubTiming" value="1"> Sub 2</label>
             </div>
-            <div class="timing-sync">
-                <div class="timing-sync-label"><b>Synchronizing Amount</b> (+ / - Seconds)</div>
-                <input class="timing-sync-input" type="text" id="sync">
+            <div class="timing-sync-container">
+                <div class="timing-sync-desc" id="sync-reset">Synchronization amount (in ms), click here to reset</div>
+                <div class="timing-sync">
+                    <button class="sync-btn size-1000" data-amount="-1000">-1s</button>
+                    <button class="sync-btn size-500" data-amount="-500">-500</button>
+                    <button class="sync-btn size-100" data-amount="-100">-100</button>
+                    <input class="timing-sync-input" type="text" id="sync">
+                    <button class="sync-btn size-100" data-amount="100">+100</button>
+                    <button class="sync-btn size-500" data-amount="500">+500</button>
+                    <button class="sync-btn size-1000" data-amount="1000">+1s</button>
+                </div>
             </div>
             <div class="timing-lines"></div>
         </div>

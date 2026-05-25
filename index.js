@@ -129,7 +129,7 @@ chrome.runtime.onMessage.addListener(message => {
         updateSettingsUI(overlay)
     }
     if (states.tab !== "timing") {
-      qs("#sync").value = time.sync[states.activeSub]
+      qs("#sync").value = Math.round((time.sync[states.activeSub] || 0) * 1000)
     }
     localStorage.setItem("settings", JSON.stringify(overlay))
     qs(".upload-preview-time").innerHTML = `${toTimeString(time.current)} / ${toTimeString(time.duration)}`
@@ -138,7 +138,9 @@ chrome.runtime.onMessage.addListener(message => {
     if (lastData) lastData.time = message.data.time;
     const time = message.data.time;
     onTimingUpdate(time)
-    if (states.tab !== "timing") { qs("#sync").value = time.sync[states.activeSub] }
+    if (states.tab !== "timing" && document.activeElement !== qs("#sync")) { 
+      qs("#sync").value = Math.round((time.sync[states.activeSub] || 0) * 1000) 
+    }
     qs(".upload-preview-time").innerHTML = `${toTimeString(time.current)} / ${toTimeString(time.duration)}`
   }
 })
@@ -165,7 +167,7 @@ qa(`input[name="activeSubTiming"], input[name="activeSubSettings"]`).forEach(rad
         if (lastData && lastData.data) {
             onTiming(lastData.data.subs[states.activeSub] || []);
             updateSettingsUI(lastData.overlay);
-            qs("#sync").value = lastData.time.sync[states.activeSub];
+            qs("#sync").value = Math.round((lastData.time.sync[states.activeSub] || 0) * 1000);
         }
     });
 });
@@ -186,7 +188,7 @@ const onTiming = lines => {
     outer.addEventListener("click", () => {
       if (!states.time) { return }
       const amount = (states.time.current - line.from).toFixed(4)
-      qs("#sync").value = amount
+      qs("#sync").value = Math.round(amount * 1000)
       sendMessage("update", { sync: amount, subIndex: states.activeSub })
     })
     outer.appendChild(item)
@@ -253,11 +255,97 @@ const onSettings = event => {
 qs("#settings").addEventListener("input", onSettings)
 qs("#settings").addEventListener("click", onSettings)
 
-qs("#sync").addEventListener("input", event => {
-  const value = event.target.value.toString()
-  const amount = (parseFloat(value) || 0).toFixed(4)
+function evaluateMath(str) {
+  str = str.replace(/\s+/g, "");
+  if (!/^[0-9+\-*/.]+$/.test(str)) return parseFloat(str) || 0;
+  const tokens = str.match(/(-?\d+\.?\d*)|[\+\-\*\/]/g);
+  if (!tokens) return 0;
+  
+  for (let i = 0; i < tokens.length; i++) {
+    if (tokens[i] === '*' || tokens[i] === '/') {
+      const op = tokens[i];
+      const prev = parseFloat(tokens[i-1]);
+      const next = parseFloat(tokens[i+1]);
+      let res = op === '*' ? prev * next : prev / next;
+      tokens.splice(i-1, 3, res.toString());
+      i--;
+    }
+  }
+  
+  let total = parseFloat(tokens[0]) || 0;
+  for (let i = 1; i < tokens.length; i += 2) {
+    const op = tokens[i];
+    const next = parseFloat(tokens[i+1]) || 0;
+    if (op === '+') total += next;
+    if (op === '-') total -= next;
+  }
+  return total;
+}
+
+function adjustSync(deltaMs) {
+  const currentMs = parseFloat(qs("#sync").value) || 0
+  const newMs = currentMs + deltaMs
+  qs("#sync").value = newMs
+  const amount = (newMs / 1000).toFixed(4)
   sendMessage("update", { sync: amount, subIndex: states.activeSub })
+}
+
+function makeRepeatable(btn, amount) {
+  let timerId = null
+  let intervalId = null
+  
+  const start = (e) => {
+    if (e.button !== 0) return
+    adjustSync(amount)
+    timerId = setTimeout(() => {
+      intervalId = setInterval(() => {
+        adjustSync(amount)
+      }, 60)
+    }, 350)
+  }
+  
+  const stop = () => {
+    clearTimeout(timerId)
+    clearInterval(intervalId)
+  }
+  
+  btn.addEventListener("mousedown", start)
+  btn.addEventListener("mouseup", stop)
+  btn.addEventListener("mouseleave", stop)
+}
+
+qa(".sync-btn[data-amount]").forEach(btn => {
+  const amount = parseInt(btn.getAttribute("data-amount"))
+  makeRepeatable(btn, amount)
 })
+
+qs("#sync-reset").addEventListener("click", () => {
+  qs("#sync").value = 0
+  sendMessage("update", { sync: "0.0000", subIndex: states.activeSub })
+})
+
+qs("#sync").addEventListener("focus", (e) => {
+  e.target.select();
+});
+
+qs("#sync").addEventListener("input", event => {
+  const ms = evaluateMath(event.target.value);
+  const amount = (ms / 1000).toFixed(4);
+  sendMessage("update", { sync: amount, subIndex: states.activeSub });
+});
+
+qs("#sync").addEventListener("blur", event => {
+  const ms = evaluateMath(event.target.value);
+  event.target.value = Math.round(ms);
+});
+
+qs("#sync").addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    const ms = evaluateMath(event.target.value);
+    event.target.value = Math.round(ms);
+    event.target.blur();
+  }
+});
 
 const onInit = () => setInterval(() => sendMessage("time"), 100)
 
