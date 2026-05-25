@@ -258,24 +258,40 @@ qs("#settings").addEventListener("click", onSettings)
 function evaluateMath(str) {
   str = str.replace(/\s+/g, "");
   if (!/^[0-9+\-*/.]+$/.test(str)) return parseFloat(str) || 0;
-  const tokens = str.match(/(-?\d+\.?\d*)|[\+\-\*\/]/g);
-  if (!tokens) return 0;
   
+  const parts = str.match(/([0-9.]+)|[\+\-\*\/]/g);
+  if (!parts) return 0;
+
+  const tokens = [];
+  for (let i = 0; i < parts.length; i++) {
+    const token = parts[i];
+    if ((token === '-' || token === '+') && (tokens.length === 0 || ['+', '-', '*', '/'].includes(tokens[tokens.length - 1]))) {
+      if (i + 1 < parts.length && !['+', '-', '*', '/'].includes(parts[i + 1])) {
+        tokens.push(token + parts[i + 1]);
+        i++;
+      } else {
+        tokens.push(token);
+      }
+    } else {
+      tokens.push(token);
+    }
+  }
+
   for (let i = 0; i < tokens.length; i++) {
     if (tokens[i] === '*' || tokens[i] === '/') {
       const op = tokens[i];
-      const prev = parseFloat(tokens[i-1]);
-      const next = parseFloat(tokens[i+1]);
-      let res = op === '*' ? prev * next : prev / next;
-      tokens.splice(i-1, 3, res.toString());
+      const prev = parseFloat(tokens[i - 1]) || 0;
+      const next = parseFloat(tokens[i + 1]) || 0;
+      const res = op === '*' ? prev * next : prev / next;
+      tokens.splice(i - 1, 3, res.toString());
       i--;
     }
   }
-  
+
   let total = parseFloat(tokens[0]) || 0;
   for (let i = 1; i < tokens.length; i += 2) {
     const op = tokens[i];
-    const next = parseFloat(tokens[i+1]) || 0;
+    const next = parseFloat(tokens[i + 1]) || 0;
     if (op === '+') total += next;
     if (op === '-') total -= next;
   }
@@ -323,10 +339,6 @@ qs("#sync-reset").addEventListener("click", () => {
   qs("#sync").value = 0
   sendMessage("update", { sync: "0.0000", subIndex: states.activeSub })
 })
-
-qs("#sync").addEventListener("focus", (e) => {
-  e.target.select();
-});
 
 qs("#sync").addEventListener("input", event => {
   const ms = evaluateMath(event.target.value);
