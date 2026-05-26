@@ -17,10 +17,10 @@ This is a customized version of SubStream that supports uploading multiple subti
 
 ### Step 1: Clone the Repository
 
-Open your terminal or command prompt and run the git clone command followed by your repository URL:
+Open your terminal or command prompt and run the git clone command with the repository URL:
 
 ```bash
-git clone https://github.com/harutopia0/DualSubStream.git
+git clone https://github.com/harutopia0/dualsubstream
 ```
 
 *(Note: If you do not have Git installed, you can click the green Code button on the GitHub repository page, select Download ZIP, and then extract the downloaded archive).*
